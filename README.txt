@@ -1,0 +1,1 @@
+This repo is for grabbing data from Robinhood (ask price, bid price, and market price, etc) from robinhood, which seemingly can only be accessed from a real-time call
