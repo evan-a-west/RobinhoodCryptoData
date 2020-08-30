@@ -54,15 +54,14 @@ def setup():
 
 
 def save_data(code, data, current_datetime, file_upload_time, previous_filename, backup_thread):
-    if(not (backup_proc is None)):
+    if(not (backup_thread is None)):
         if(DEBUGGER == 1):
             print(
                 "\n\n###########################################################################")
-            print("backup_proc: " + str(backup_proc))
-            print("backup_proc is None: " + str(backup_proc is None) +
+            print("backup_thread: " + str(backup_thread))
+            print("backup_thread is None: " + str(backup_thread is None) +
                   ", Note - expecting FALSE here")
             print("Waiting for previous backup process to complete")
-        # backup_proc.join()
         backup_thread.join()
         if(DEBUGGER == 1):
             print("Previous backup process is complete")
@@ -117,7 +116,7 @@ def save_data(code, data, current_datetime, file_upload_time, previous_filename,
         print("filename : " + filename)
         print("previous_filename != filename : " +
               str(previous_filename != filename))
-    backup_proc = None
+    backup_thread = None
     if((current_datetime - file_upload_time).total_seconds() >= 0 or (previous_filename != filename)):
         # On the first iteration of the program, the previous_filename will be null, and we want to update it to the new filname
         if(previous_filename == code + '_firstupload.csv'):
@@ -125,11 +124,9 @@ def save_data(code, data, current_datetime, file_upload_time, previous_filename,
         filepath = previous_filename
         backuppath = BACKUPPATH_ROOT + "/" + filepath
 
-        # backup_proc = mp.Process(target=backup, args=(backuppath, filepath,))
-        # backup_proc.start()
         backup_thread = thr.Thread(target=backup, args=(backuppath, filepath,))
         backup_thread.start()
-    return {'filename': filename, 'backup_proc': backup_proc}
+    return {'filename': filename, 'backup_thread': backup_thread}
 
 
 def process_func(code, stop_threads):
@@ -146,7 +143,7 @@ def process_func(code, stop_threads):
     time_between_uploads = 3  # Hours between uploads to Dropbox
     # For tracking when filename changes. This is needed so that if the filename changes between upload intervals, the final version of the previous file can be uploaded
     previous_filename = code + '_firstupload.csv'
-    backup_proc = None  # Allows the backup process generated in save_data to run in parrellel. Most of the time, the process will finish backing up to DropBox before the next call to save_data, but this is needed to handle the situations where the backup has not completed yet
+    backup_thread = None  # Allows the backup process generated in save_data to run in parrellel. Most of the time, the process will finish backing up to DropBox before the next call to save_data, but this is needed to handle the situations where the backup has not completed yet
 
     if(DEBUGGER == 1):
         print("stop_threads : " + str(stop_threads()) +
@@ -188,9 +185,9 @@ def process_func(code, stop_threads):
 
             # Save the accumulated data
             info_from_save_data = save_data(
-                code, data, current_datetime, file_upload_time, previous_filename, backup_proc)
+                code, data, current_datetime, file_upload_time, previous_filename, backup_thread)
             previous_filename = info_from_save_data.get("filename")
-            backup_proc = info_from_save_data.get("backup_proc")
+            backup_thread = info_from_save_data.get("backup_thread")
             # counters and data
             loop_counter = 0
             data = []
