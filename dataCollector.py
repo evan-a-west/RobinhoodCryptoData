@@ -1,5 +1,6 @@
 import robin_stocks as r
 import multiprocessing as mp
+import threading as thr
 import csv
 import numpy as np
 import time
@@ -10,10 +11,15 @@ import sys
 import dropbox
 from dropbox.files import WriteMode
 from dropbox.exceptions import ApiError, AuthError
+import logging
+from requests.exceptions import ConnectionError
 
-
-# Setup Robinhood account
-r.login("evan-west@hotmail.com", "Ambrosio%67")
+try:
+    # Setup Robinhood account
+    r.login("evan-west@hotmail.com", "Ambrosio%67")
+except ConnectionError as err:
+    logging.error("Connection Error while logging in")
+    logging.error(err)
 # Access token to Evan's Dropbox
 # TOKEN = 'sl.AgvJduh0Hme3yN02cpSv7Omx-upyHV8Uwvq_7OM5mVHr_qYH-mpw_IABmFkuZwCtTQQEFCS7XpXulA6Y9fZIYQFz-wA11kj_fgrnPHCsIlXXSfWhe9QyLf-DIgdybMEnyDHUUUE'
 TOKEN = 'CuaXlDyGECgAAAAAAAAAAZYAeOmfjT2c2UcrE7CcWNLU2dz5hRbLaNQGrxx2GK4H'
@@ -32,14 +38,22 @@ def setup():
     if(DEBUGGER == 1):
         print("inside setup")
 
-    all_currency_info = r.crypto.get_crypto_currency_pairs(info=None)
+    all_currency_info = None
+    try:
+        # Retrieve all currency information from Robinhood
+        all_currency_info = r.crypto.get_crypto_currency_pairs(info=None)
+    except ConnectionError as err:
+        logging.error("Connection Error while retreiving currency information")
+        logging.error(err)
+
+    # Build array of currency codes
     codes = []
     for data in all_currency_info:
         codes.append(data.get('asset_currency').get('code'))
     return codes
 
 
-def save_data(code, data, current_datetime, file_upload_time, previous_filename, backup_proc):
+def save_data(code, data, current_datetime, file_upload_time, previous_filename, backup_thread):
     if(not (backup_proc is None)):
         if(DEBUGGER == 1):
             print(
@@ -48,7 +62,8 @@ def save_data(code, data, current_datetime, file_upload_time, previous_filename,
             print("backup_proc is None: " + str(backup_proc is None) +
                   ", Note - expecting FALSE here")
             print("Waiting for previous backup process to complete")
-        backup_proc.join()
+        # backup_proc.join()
+        backup_thread.join()
         if(DEBUGGER == 1):
             print("Previous backup process is complete")
 
@@ -91,7 +106,7 @@ def save_data(code, data, current_datetime, file_upload_time, previous_filename,
             np.savetxt(fname=outfile, X=numpy_data, delimiter=',', fmt='%s')
 
     # Upload the file to dropbox if the file_upload_time has been reached or if the filename changed.
-    # If the filename changed, then the final version of the previous file can be changed
+    # If the filename changed, then the final version of the previous file can be uploaded
     # Note: This will overwrite any existing file on Dropbox
     if(DEBUGGER == 1):
         print("(current_datetime - file_upload_time).total_seconds() : " +
@@ -110,12 +125,14 @@ def save_data(code, data, current_datetime, file_upload_time, previous_filename,
         filepath = previous_filename
         backuppath = BACKUPPATH_ROOT + "/" + filepath
 
-        backup_proc = mp.Process(target=backup, args=(backuppath, filepath,))
-        backup_proc.start()
+        # backup_proc = mp.Process(target=backup, args=(backuppath, filepath,))
+        # backup_proc.start()
+        backup_thread = thr.Thread(target=backup, args=(backuppath, filepath,))
+        backup_thread.start()
     return {'filename': filename, 'backup_proc': backup_proc}
 
 
-def process_func(code):
+def process_func(code, stop_threads):
     if(DEBUGGER == 1):
         print("Starting process_func for process: " + str(mp.current_process()))
     data = []
@@ -130,13 +147,18 @@ def process_func(code):
     # For tracking when filename changes. This is needed so that if the filename changes between upload intervals, the final version of the previous file can be uploaded
     previous_filename = code + '_firstupload.csv'
     backup_proc = None  # Allows the backup process generated in save_data to run in parrellel. Most of the time, the process will finish backing up to DropBox before the next call to save_data, but this is needed to handle the situations where the backup has not completed yet
-    while (1+1 == 2):  # Loop INFINITELY
+    while not stop_threads:  # Loop INFINITELY until user says to stop
         if(DEBUGGER == 1):
             print("Inside process_func while loop with loop_counter = " +
                   str(loop_counter))
 
-        # Get current quote from RobinHood
-        local_dict = r.crypto.get_crypto_quote(code, info=None)
+        try:
+            # Get current quote from RobinHood
+            local_dict = r.crypto.get_crypto_quote(code, info=None)
+        except ConnectionError as err:
+            logging.error(
+                "Connection Error while retrieving a quote for " + code)
+            logging.error(err)
 
         # Append the datetime to the record
         est = timezone('EST')
@@ -217,22 +239,34 @@ def backup(backuppath, filepath):
 #         print(entry.name)
 
 def main():
-
     # Setup connection to
     process_names = setup()
 
     if(DEBUGGER == 1):
         print(process_names)
-    procs = []
+    # procs = []
+    threads = []
 
     # process_names = ['ETC']
+    stop_threads = False
     for name in process_names:
-        proc = mp.Process(target=process_func, args=(name,))
-        procs.append(proc)
-        proc.start()
+        # proc = mp.Process(target=process_func, args=(name,))
+        # procs.append(proc)
+        # proc.start()
+        thread = thr.Thread(target=process_func,
+                            args=(name, lambda: stop_threads))
+        threads.append(thread)
+        thread.start()
 
-    for proc in procs:
-        proc.join()
+    while not stop_threads:
+        userInput = input("input 'exit' to stop : ")
+        if(userInput == "exit"):
+            stop_threads = True
+
+    # for proc in procs:
+    #     proc.join()
+    for thread in threads:
+        thread.join()
 
 
 if __name__ == "__main__":
