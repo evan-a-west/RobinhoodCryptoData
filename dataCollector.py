@@ -147,7 +147,14 @@ def process_func(code, stop_threads):
     # For tracking when filename changes. This is needed so that if the filename changes between upload intervals, the final version of the previous file can be uploaded
     previous_filename = code + '_firstupload.csv'
     backup_proc = None  # Allows the backup process generated in save_data to run in parrellel. Most of the time, the process will finish backing up to DropBox before the next call to save_data, but this is needed to handle the situations where the backup has not completed yet
-    while not stop_threads:  # Loop INFINITELY until user says to stop
+
+    if(DEBUGGER == 1):
+        print("stop_threads : " + str(stop_threads()) +
+              ", Note: expecting FALSE until user input")
+        print("not stop_threads : " + str(not stop_threads()) +
+              ", Note: expecting TRUE until user input")
+
+    while (not stop_threads()):  # Loop INFINITELY until user says to stop
         if(DEBUGGER == 1):
             print("Inside process_func while loop with loop_counter = " +
                   str(loop_counter))
