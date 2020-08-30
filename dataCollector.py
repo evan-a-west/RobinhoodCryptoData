@@ -69,7 +69,7 @@ def save_data(code, data, current_datetime, file_upload_time, previous_filename,
     if(not os.path.exists(directory)):
         os.makedirs(directory)
 
-    file_append = current_datetime.strftime("%d_%m_%Y_Hour%H_Minute%M")
+    file_append = current_datetime.strftime("%d_%m_%Y")
 
     filename = directory + '/' + code + '_' + file_append + '.csv'
 
