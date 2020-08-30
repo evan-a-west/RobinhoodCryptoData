@@ -105,7 +105,7 @@ def save_data(code, data, current_datetime, file_upload_time, previous_filename,
     backup_proc = None
     if((current_datetime - file_upload_time).total_seconds() >= 0 or (previous_filename != filename)):
         # On the first iteration of the program, the previous_filename will be null, and we want to update it to the new filname
-        if(previous_filename == ''):
+        if(previous_filename == code + '_firstupload.csv'):
             previous_filename = filename
         filepath = previous_filename
         backuppath = BACKUPPATH_ROOT + "/" + filepath
@@ -127,7 +127,8 @@ def process_func(code):
     loop_counter = 0  # Will trigger a while write when loop_counter == write_threshold
     file_upload_time = 0  # For tracking the previous file upload
     time_between_uploads = 3  # Hours between uploads to Dropbox
-    previous_filename = ''  # For tracking when filename changes. This is needed so that if the filename changes between upload intervals, the final version of the previous file can be uploaded
+    # For tracking when filename changes. This is needed so that if the filename changes between upload intervals, the final version of the previous file can be uploaded
+    previous_filename = code + '_firstupload.csv'
     backup_proc = None  # Allows the backup process generated in save_data to run in parrellel. Most of the time, the process will finish backing up to DropBox before the next call to save_data, but this is needed to handle the situations where the backup has not completed yet
     while (1+1 == 2):  # Loop INFINITELY
         if(DEBUGGER == 1):
