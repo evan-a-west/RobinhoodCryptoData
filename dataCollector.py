@@ -121,8 +121,6 @@ def main():
         print(process_names)
     procs = []
 
-    process_names = ['ETC']
-
     for name in process_names:
         proc = mp.Process(target=process_func, args=(name,))
         procs.append(proc)
