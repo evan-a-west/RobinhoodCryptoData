@@ -26,7 +26,7 @@ TOKEN = 'CuaXlDyGECgAAAAAAAAAAZYAeOmfjT2c2UcrE7CcWNLU2dz5hRbLaNQGrxx2GK4H'
 # Root path at which to save files. Keep the forward slash before destination filename
 BACKUPPATH_ROOT = '/local'
 # Set DEBUGGER to 1 to print debugging statements
-DEBUGGER = 1
+DEBUGGER = 0
 
 
 def setup():
@@ -72,8 +72,9 @@ def save_data(coinCodes, allData, current_datetime, file_upload_time, previous_f
     filenames = {}
     # Extract raw data from the dictionary
     for code in coinCodes:
+        data = allData.get(code)
         raw_data = []
-        for record in allData.get(code):
+        for record in data:
             row = []
             for item in record:
                 row.append(record.get(item))
@@ -88,7 +89,7 @@ def save_data(coinCodes, allData, current_datetime, file_upload_time, previous_f
         file_append = current_datetime.strftime("%d_%m_%Y")
 
         filename = directory + '/' + code + '_' + file_append + '.csv'
-        filenames.update(code, filename)
+        filenames.update({code: filename})
         # If the file does not exist, create it and output the headers
         if(not os.path.exists(filename)):
             # Generate headers
@@ -115,31 +116,21 @@ def save_data(coinCodes, allData, current_datetime, file_upload_time, previous_f
               str((current_datetime - file_upload_time).total_seconds()))
         print("(current_datetime - file_upload_time).total_seconds() >= 0 : " +
               str((current_datetime - file_upload_time).total_seconds() >= 0))
-        print("previous_filenames : " + previous_filenames)
-        print("filenames : " + filenames)
+        print("previous_filenames : " + str(previous_filenames))
+        print("filenames : " + str(filenames))
         print("previous_filenames != filenames : " +
               str(previous_filenames != filenames))
     backup_thread = None
     if((current_datetime - file_upload_time).total_seconds() >= 0 or (previous_filenames != filenames)):
         backup_thread = thr.Thread(
-            target=backup, args=(previous_filenames, filenames))
+            target=backup, args=(coinCodes, previous_filenames, filenames))
         backup_thread.start()
-    return {'filename': filename, 'backup_thread': backup_thread}
+    return {'filenames': filenames, 'backup_thread': backup_thread}
 
 
 def process_func(code):
     if(DEBUGGER == 1):
-        print("Starting process_func for process: " + str(mp.current_process()))
-
-    if(DEBUGGER == 1):
-        print("stop_threads : " + str(stop_threads()) +
-              ", Note: expecting FALSE until user input")ls
-        print("not stop_threads : " + str(not stop_threads()) +
-              ", Note: expecting TRUE until user input")
-
-    if(DEBUGGER == 1):
-        print("Inside process_func while loop with loop_counter = " +
-              str(loop_counter))
+        print("Starting process_func for code: " + str(code))
 
     try:
         # Get current quote from RobinHood
@@ -148,6 +139,13 @@ def process_func(code):
         logging.error(
             "Connection Error while retrieving a quote for " + code)
         logging.error(err)
+    except Exception as err:
+        logging.error(
+            "Exception while retrieving a quote for " + code)
+        logging.error(err)
+
+    if(DEBUGGER == 1):
+        print("data fetched from robinhood " + str(local_dict))
 
     # Append the datetime to the record
     est = timezone('EST')
@@ -158,11 +156,12 @@ def process_func(code):
 
 
 # Uploads contents of LOCALFILE to Dropbox
-def backup(previous_filenames, filenames):
-    for previous_filename, filename in zip(previous_filenames, filenames):
+def backup(coinCodes, previous_filenames, filenames):
+    for code in coinCodes:
         # On the first iteration of the program, the previous_filename will be null, and we want to update it to the new filname
+        previous_filename = previous_filenames.get(code)
         if(previous_filename == code + '_firstupload.csv'):
-            previous_filename = filename
+            previous_filename = filenames.get(code)
         filepath = previous_filename
         backuppath = BACKUPPATH_ROOT + "/" + filepath
 
@@ -203,17 +202,18 @@ def backup(previous_filenames, filenames):
                     sys.exit()
 
 
-def logging(filename):
-    filepath = l
-    with open(filepath, 'rb') as f:
+# def logging(filename):
+#     filepath = l
+#     with open(filepath, 'rb') as f:
 
-        # # Adding few functions to check file details
-        # def checkFileDetails():
-        #     print("Checking file details")
+#         # # Adding few functions to check file details
+#         # def checkFileDetails():
+#         #     print("Checking file details")
 
-        #     for entry in dbx.files_list_folder('').entries:
-        #         print("File list is : ")
-        #         print(entry.name)
+#         #     for entry in dbx.files_list_folder('').entries:
+#         #         print("File list is : ")
+#         #         print(entry.name)
+#         print("hello")
 
 
 def main():
@@ -222,36 +222,58 @@ def main():
     duration = 5.0  # Duration of sleep in seconds
 
     # Threshold for triggering file write. The value here is the number of loops between file writes (i.e. 36 = 3 minutes when duration is set to 5 seconds)
-    write_threshold = 36
+    write_threshold = 20
 
     loop_counter = 0  # Will trigger a while write when loop_counter == write_threshold
 
     file_upload_time = 0  # For tracking the previous file upload
 
-    time_between_uploads = 3  # Hours between uploads to Dropbox
+    time_between_uploads = 30  # Minutes between uploads to Dropbox
 
     # data - For each coin, save all data
     # previous_filename - For each coin, track when filename changes. This is needed so that if the filename changes between upload intervals, the final version of the previous file can be uploaded
     allData = {}
     previous_filenames = {}
     for code in coinCodes:
-        previous_filenames.update(code, code + '_firstupload.csv')
-        allData.update(code, [])
+        previous_filenames.update({code: code + '_firstupload.csv'})
+        allData.update({code: []})
 
     backup_thread = None  # Allows the backup process generated in save_data to run in parrellel. Most of the time, the process will finish backing up to DropBox before the next call to save_data, but this is needed to handle the situations where the backup has not completed yet
 
     if(DEBUGGER == 1):
-        print(process_names)
+        print("coinCodes: " + str(coinCodes))
+        print("previous_filenames: " + str(previous_filenames))
+        print("allData: " + str(allData))
 
-    while true:
+    current_datetime = datetime.datetime.now(timezone('EST'))
+    total_loop_counter = 0
+    while True:
+        # log each 5 loops
+        if(total_loop_counter % 5 == 0):
+            print("total_loop_counter: " + str(total_loop_counter) +
+                  ", datetime: " + str(current_datetime))
+
         for code in coinCodes:
             coindata = allData.get(code)
             coindata.append(process_func(code))
-            allData.update(code, coindata)
+            allData.update({code: coindata})
+            if(DEBUGGER == 1):
+                print("#################################################")
+                print("Inside coinCodes loop1")
+                print("Code: " + str(code))
+                print("allData: " + str(allData))
+                print("#################################################")
 
+        if(DEBUGGER == 1):
+            print("#################################################")
+            print("Post coinCodes loop1")
+            print("allData: " + str(allData))
+            print("#################################################")
         # Update the fileupload time, if an upload occurred in the previous loop
+        current_datetime = datetime.datetime.now(timezone('EST'))
         if(file_upload_time == 0):
-            delta = datetime.timedelta(hours=time_between_uploads)
+            # delta = datetime.timedelta(hours=time_between_uploads)
+            delta = datetime.timedelta(minutes=time_between_uploads)
             # delta = datetime.timedelta(seconds=time_between_uploads)
             file_upload_time = current_datetime + delta
 
@@ -261,14 +283,14 @@ def main():
             # Save the accumulated data
             info_from_save_data = save_data(
                 coinCodes, allData, current_datetime, file_upload_time, previous_filenames, backup_thread)
-            previous_filenames = info_from_save_data.get("filename")
+            previous_filenames = info_from_save_data.get("filenames")
             backup_thread = info_from_save_data.get("backup_thread")
 
             # reset counter and data
             loop_counter = 0
             allData = {}
             for code in coinCodes:
-                allData.update(code, [])
+                allData.update({code: []})
         loop_counter += 1
 
         # Wait
