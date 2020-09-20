@@ -252,6 +252,7 @@ def main():
         if(total_loop_counter % 5 == 0):
             print("total_loop_counter: " + str(total_loop_counter) +
                   ", datetime: " + str(current_datetime))
+            total_loop_counter = 0
         total_loop_counter += 1
 
         for code in coinCodes:
