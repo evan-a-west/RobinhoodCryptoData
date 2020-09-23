@@ -58,6 +58,8 @@ def setup():
 
 
 def save_data(coinCodes, allData, current_datetime, file_upload_time, previous_filenames):
+    time_between_uploads = 30  # Minutes between uploads to Dropbox
+
     if(DEBUGGER == 1):
         print("Inside save_data")
 
@@ -78,7 +80,8 @@ def save_data(coinCodes, allData, current_datetime, file_upload_time, previous_f
         if(not os.path.exists(directory)):
             os.makedirs(directory)
 
-        file_append = current_datetime.strftime("%d_%m_%Y")
+        # file_append = current_datetime.strftime("%d_%m_%Y")
+        file_append = current_datetime.strftime("%d_%m_%Y_%H")
 
         filename = directory + '/' + code + '_' + file_append + '.csv'
         filenames.update({code: filename})
@@ -235,7 +238,7 @@ def saveStatus(file_upload_time, run_counter, previous_filenames):
         "run_counter": run_counter,
         "previous_filenames": previous_filenames
     }
-    status = json.dumps(statusDict)
+    status = json.dumps(statusDict, indent=4, sort_keys=True, default=str)
 
     filename = LOCAL_DATA_DIRECTORY + "runData.json"
 
@@ -247,28 +250,31 @@ def saveStatus(file_upload_time, run_counter, previous_filenames):
 def main():
     # Setup connection to
     coinCodes = setup()
-    duration = 5.0  # Duration of sleep in seconds
 
     # # Threshold for triggering file write. The value here is the number of loops between file writes (i.e. 36 = 3 minutes when duration is set to 5 seconds)
     # write_threshold = 20
 
     # loop_counter = 0  # Will trigger a while write when loop_counter == write_threshold
 
-    file_upload_time = 0  # For tracking the previous file upload
-
-    time_between_uploads = 30  # Minutes between uploads to Dropbox
-
     status = readStatus()
+
+    # This if statement should only occur on the first run
     if(status is None):
         statusDict = {
-            "fileUploadTime": 0,
+            "fileUploadTime": datetime.datetime.now(timezone('EST')),
             "run_counter": 0,
             "previous_filenames": None
         }
-        status = json.dumps(statusDict)
+        status = json.dumps(
+            statusDict, indent=4, sort_keys=True, default=str)
+    status = json.loads(status)
 
-    file_upload_time = status["fileUploadTracker"]
+    file_upload_time = status["fileUploadTime"]
     run_counter = status["run_counter"]
+    previous_filenames = status["previous_filenames"]
+
+    # Convert file_upload_time from string to datetime
+    file_upload_time = datetime.datetime.fromisoformat(file_upload_time)
 
     # data - For each coin, save all data
     # previous_filename - For each coin, track when filename changes. This is needed so that if the filename changes between upload intervals, the final version of the previous file can be uploaded
