@@ -14,10 +14,12 @@ from dropbox.exceptions import ApiError, AuthError
 import logging
 from requests.exceptions import ConnectionError
 import json
+import pyotp
 
 try:
     # Setup Robinhood account
-    r.login("evan-west@hotmail.com", "Ambrosio%67")
+    totp = pyotp.TOTP("3FYIQZB7NUF2SS6J").now()
+    r.login("evan-west@hotmail.com", "Ambrosio%67", mfa_code=totp)
 except ConnectionError as err:
     logging.error("Connection Error while logging in")
     logging.error(err)
@@ -81,7 +83,7 @@ def save_data(coinCodes, allData, current_datetime, file_upload_time, previous_f
             os.makedirs(directory)
 
         # file_append = current_datetime.strftime("%d_%m_%Y")
-        file_append = current_datetime.strftime("%d_%m_%Y_%H")
+        file_append = current_datetime.strftime("%d_%m_%Y")
 
         filename = directory + '/' + code + '_' + file_append + '.csv'
         filenames.update({code: filename})
@@ -115,7 +117,6 @@ def save_data(coinCodes, allData, current_datetime, file_upload_time, previous_f
         print("filenames : " + str(filenames))
         print("previous_filenames != filenames : " +
               str(previous_filenames != filenames))
-    backup_thread = None
     if((current_datetime - file_upload_time).total_seconds() >= 0 or (previous_filenames != filenames)):
         backup(coinCodes, previous_filenames, filenames)
         previous_filenames = filenames
