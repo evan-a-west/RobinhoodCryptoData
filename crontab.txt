@@ -1,0 +1,2 @@
+* * * * * for i in 0 1 2 3; do ~/RobinhoodCryptoData/runScript.sh & sleep 15; done;
+0 15 * * * do ~/RobinhoodCryptoData/runDaily.sh; done;
