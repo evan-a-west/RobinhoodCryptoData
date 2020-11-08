@@ -36,7 +36,7 @@ BACKUPPATH_ROOT = '/local'
 DEBUGGER = 1
 
 LOCAL_DATA_DIRECTORY = 'Data/'
-FILE_APPEND = datetime.datetime.now(timezone('EST')).strftime("%d_%m_%Y_%M")
+FILE_APPEND = datetime.datetime.now(timezone('EST')).strftime("%d_%m_%Y")
 
 
 def setup():

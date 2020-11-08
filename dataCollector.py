@@ -31,7 +31,7 @@ DEBUGGER = 0
 
 LOCAL_DATA_DIRECTORY = 'Data/'
 LOGGING_DIRECTORY = LOCAL_DATA_DIRECTORY + "Logs/"
-FILE_APPEND = datetime.datetime.now(timezone('EST')).strftime("%d_%m_%Y_%M")
+FILE_APPEND = datetime.datetime.now(timezone('EST')).strftime("%d_%m_%Y")
 
 
 def setup():
