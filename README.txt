@@ -13,3 +13,8 @@ EC2 setup:
 
 To run the code on personal macine: python dataCollector.py
 on EC2: python3.8 dataCollector.py
+
+To setup recurring transaction using cron: 
+1) Type chrontab -e
+2) copy/type in the data from chrontab.txt in this folder
+3) The jobs should run at the sceduled times
