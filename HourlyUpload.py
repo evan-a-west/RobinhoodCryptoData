@@ -17,7 +17,6 @@ import json
 import pyotp
 from os.path import isfile, join
 from os import listdir
-import re
 
 try:
     # Setup Robinhood account
@@ -36,7 +35,7 @@ BACKUPPATH_ROOT = '/AWS_Server1'
 DEBUGGER = 0
 
 LOCAL_DATA_DIRECTORY = 'Data/'
-FILE_APPEND = datetime.datetime.now(timezone('EST')).strftime("%d_%m_%Y")
+FILE_APPEND = datetime.datetime.now(timezone('EST')).strftime("%Y_%m_%d")
 
 
 def setup():
