@@ -30,10 +30,10 @@ except ConnectionError as err:
 # TOKEN = 'sl.AgvJduh0Hme3yN02cpSv7Omx-upyHV8Uwvq_7OM5mVHr_qYH-mpw_IABmFkuZwCtTQQEFCS7XpXulA6Y9fZIYQFz-wA11kj_fgrnPHCsIlXXSfWhe9QyLf-DIgdybMEnyDHUUUE'
 TOKEN = 'CuaXlDyGECgAAAAAAAAAAZYAeOmfjT2c2UcrE7CcWNLU2dz5hRbLaNQGrxx2GK4H'
 # Root path at which to save files. Keep the forward slash before destination filename
-BACKUPPATH_ROOT = '/local'
+BACKUPPATH_ROOT = '/AWS_Server1'
 
 # Set DEBUGGER to 1 to print debugging statements
-DEBUGGER = 1
+DEBUGGER = 0
 
 LOCAL_DATA_DIRECTORY = 'Data/'
 FILE_APPEND = datetime.datetime.now(timezone('EST')).strftime("%d_%m_%Y")
@@ -100,8 +100,9 @@ def FileManager(coinCodes, previous_filenames):
         filename = code + '_' + FILE_APPEND + '.csv'
         filenames.update({code: filename})
         # On the first iteration of the program, the previous_filename will be null, and we want to update it to the new filname
+        # Also, occasionally, the preivious_filenames dictionary will be empty (i.e. {}). IN this case, recover by setting previous filename to current filename
         previous_filename = None
-        if(previous_filenames is None):
+        if(previous_filenames is None or not previous_filenames):
             previous_filename = filename
         # Otherwise, stick with the previous filename
         else:
