@@ -35,7 +35,7 @@ BACKUPPATH_ROOT = '/local'
 # Set DEBUGGER to 1 to print debugging statements
 DEBUGGER = 1
 
-LOCAL_DATA_DIRECTORY = 'Data/'
+LOCAL_DATA_DIRECTORY = 'Data_temp/Data/'
 
 
 def setup():
@@ -110,9 +110,6 @@ def DeleteLocalFilesOlderThan1Month(code, local_files, directory):
         current_date_str = datetime.datetime.now(est).strftime("%d_%m_%Y")
         current_date = datetime.datetime.strptime(
             current_date_str, "%d_%m_%Y")
-
-        temp = current_date - file_date
-        print(temp)
 
         # If the file was created more than 31 days ago, delete it locally
         if((current_date - file_date).days > 31):
